@@ -1,1 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
 
+        h2 {
+            color: #333;
+        }
+
+        form input {
+            margin: 5px 0;
+            padding: 8px;
+        }
+
+        button {
+            padding: 10px;
+            cursor: pointer;
+            border: none;
+            color: white;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #error {
+            color: red;
+        }
+
+        .account-item {
+            margin-bottom: 10px;
+        }
+
+        .password {
+            display: none;
+            font-weight: bold;
+        }
+
+        /* Styling the buttons */
+        #loginBtn, #logoutBtn {
+            background-color: #003366; /* Dark blue */
+        }
+
+        #showPasswordBtn {
+            background-color: #D3D3D3; /* Light grey */
+            color: black;
+        }
+
+        /* Add hover effects for buttons */
+        #loginBtn:hover, #logoutBtn:hover {
+            background-color: #0055A4; /* Lighter blue on hover */
+        }
+
+        #showPasswordBtn:hover {
+            background-color: #C0C0C0; /* Darker grey on hover */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login Section -->
+    <div id="loginSection" class="hidden">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required><br><br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required><br><br>
+            <button type="submit" id="loginBtn">Login</button>
+        </form>
+        <div id="error" class="hidden">Incorrect username or password</div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboardSection" class="hidden">
+        <h2>Welcome to your dashboard</h2>
+        <button id="logoutBtn">Logout</button>
+
+        <h3>Your Saved Accounts:</h3>
+        <ul id="accountList"></ul>
+
+        <h3>Add New Account</h3>
+        <form id="accountForm">
+            <label for="website">Website:</label>
+            <input type="text" id="website" required><br><br>
+            <label for="accountUsername">Username:</label>
+            <input type="text" id="accountUsername" required><br><br>
+            <label for="accountPassword">Password:</label>
+            <input type="password" id="accountPassword" required><br><br>
+            <button type="submit">Save Account</button>
+        </form>
+    </div>
+
+    <script>
+        // Fake user data for demonstration purposes
+        const users = [
+            { "username": "Cristian", "password": "password123" },
+            { "username": "John", "password": "mypassword" }
+        ];
+
+        // Check if the user is logged in
+        function checkLogin() {
+            const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+            if (loggedInUser) {
+                showDashboard(loggedInUser);
+            } else {
+                showLogin();
+            }
+        }
+
+        // Show the login page
+        function showLogin() {
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('dashboardSection').classList.add('hidden');
+        }
+
+        // Show the dashboard page
+        function showDashboard(loggedInUser) {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+
+            // Display logged-in user's name
+            document.body.insertAdjacentHTML('beforeend', `<p>Logged in as: ${loggedInUser.username}</p>`);
+
+            // Display saved accounts
+            displaySavedAccounts();
+        }
+
+        // Display saved accounts from localStorage
+        function displaySavedAccounts() {
+            const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+            const accountList = document.getElementById('accountList');
+            accountList.innerHTML = '';
+            accounts.forEach((account, index) => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('account-item');
+
+                // Display website and username
+                const accountInfo = document.createElement('div');
+                accountInfo.textContent = `Website: ${account.website}, Username: ${account.username}`;
+                listItem.appendChild(accountInfo);
+
+                // Password (hidden by default)
+                const passwordDisplay = document.createElement('span');
+                passwordDisplay.classList.add('password');
+                passwordDisplay.textContent = `Password: ${account.password}`;
+                listItem.appendChild(passwordDisplay);
+
+                // Show password button
+                const showPasswordButton = document.createElement('button');
+                showPasswordButton.id = 'showPasswordBtn';
+                showPasswordButton.textContent = 'Show Password';
+                showPasswordButton.onclick = function () {
+                    const passwordField = listItem.querySelector('.password');
+                    passwordField.style.display = passwordField.style.display === 'none' ? 'block' : 'none';
+                    showPasswordButton.textContent = passwordField.style.display === 'none' ? 'Show Password' : 'Hide Password';
+                };
+                listItem.appendChild(showPasswordButton);
+
+                accountList.appendChild(listItem);
+            });
+        }
+
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const user = users.find(u => u.username === username && u.password === password);
+
+            if (user) {
+                localStorage.setItem('loggedInUser', JSON.stringify(user));
+                showDashboard(user);
+            } else {
+                document.getElementById('error').classList.remove('hidden');
+            }
+        });
+
+        // Handle account saving form
+        document.getElementById('accountForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const website = document.getElementById('website').value;
+            const accountUsername = document.getElementById('accountUsername').value;
+            const accountPassword = document.getElementById('accountPassword').value;
+
+            let accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+            accounts.push({ website, username: accountUsername, password: accountPassword });
+            localStorage.setItem('accounts', JSON.stringify(accounts));
+
+            displaySavedAccounts(); // Refresh the account list
+            document.getElementById('accountForm').reset();
+        });
+
+        // Handle logout
+        document.getElementById('logoutBtn').addEventListener('click', function () {
+            localStorage.removeItem('loggedInUser');
+            showLogin();
+        });
+
+        // Check login status when the page loads
+        checkLogin();
+    </script>
+</body>
+</html>
