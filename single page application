@@ -47,7 +47,7 @@
         }
 
         /* Styling the buttons */
-        #loginBtn, #logoutBtn {
+        #loginBtn, #logoutBtn, #settingsBtn, #backToDashboardBtn {
             background-color: #003366; /* Dark blue */
         }
 
@@ -57,34 +57,88 @@
         }
 
         /* Add hover effects for buttons */
-        #loginBtn:hover, #logoutBtn:hover {
+        #loginBtn:hover, #logoutBtn:hover, #settingsBtn:hover, #backToDashboardBtn:hover {
             background-color: #0055A4; /* Lighter blue on hover */
         }
 
         #showPasswordBtn:hover {
             background-color: #C0C0C0; /* Darker grey on hover */
         }
+
+        /* Positioning logout, settings, and back to dashboard buttons */
+        #logoutBtn, #backToDashboardBtn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+        }
+
+        #settingsBtn {
+            position: fixed;
+            bottom: 70px;
+            left: 20px;
+        }
+
+        #dashboardSection, #settingsSection {
+            margin-bottom: 100px; /* So buttons do not overlap content */
+        }
+
+        /* Styling for settings page */
+        #settingsSection h3 {
+            margin-top: 20px;
+        }
+
+        .account-item button {
+            margin-left: 10px;
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+        }
+
+        /* New Delete Account Section */
+        #deleteAccountSection {
+            margin-top: 30px;
+            background-color: #f8d7da;
+            padding: 10px;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+        }
+
+        /* Edit/Delete Account Section */
+        #editAccountSection {
+            margin-top: 30px;
+            background-color: #d1ecf1;
+            padding: 10px;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
 
     <!-- Login Section -->
-    <div id="loginSection" class="hidden">
+    <div id="loginSection">
         <h2>Login</h2>
         <form id="loginForm">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required><br><br>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required><br><br>
+            <div class="form-section">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required><br><br>
+            </div>
+            <div class="form-section">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required><br><br>
+            </div>
             <button type="submit" id="loginBtn">Login</button>
         </form>
-        <div id="error" class="hidden">Incorrect username or password</div>
+        <div id="error" class="hidden" aria-live="assertive">Incorrect username or password</div>
     </div>
 
     <!-- Dashboard Section -->
     <div id="dashboardSection" class="hidden">
         <h2>Welcome to your dashboard</h2>
-        <button id="logoutBtn">Logout</button>
+
+        <!-- User info display -->
+        <div id="userInfo"></div>
 
         <h3>Your Saved Accounts:</h3>
         <ul id="accountList"></ul>
@@ -99,6 +153,34 @@
             <input type="password" id="accountPassword" required><br><br>
             <button type="submit">Save Account</button>
         </form>
+
+        <!-- Buttons -->
+        <button id="settingsBtn">Settings</button>
+        <button id="logoutBtn">Logout</button>
+    </div>
+
+    <!-- Settings Section for Dashboard Page -->
+    <div id="settingsDashboardPage" class="hidden">
+        <h2>Settings Page (Dashboard)</h2>
+        <h3>Manage Saved Accounts</h3>
+        <ul id="settingsAccountList" aria-live="polite"></ul>
+
+        <!-- Edit/Delete Account Section -->
+        <div id="editAccountSection">
+            <h3>Edit/Delete Your Saved Accounts</h3>
+            <p>You can edit or delete your saved accounts below.</p>
+            <ul id="editAccountList"></ul>
+        </div>
+
+        <!-- New Delete Account Section -->
+        <div id="deleteAccountSection">
+            <h3>Delete Your Account</h3>
+            <p>If you wish to delete your account, click the button below. This action cannot be undone.</p>
+            <button id="deleteAccountBtn">Delete Account</button>
+        </div>
+
+        <button id="backToDashboardBtn">Back to Dashboard</button>
+        <button id="logoutFromSettingsBtn">Logout</button>
     </div>
 
     <script>
@@ -122,15 +204,20 @@
         function showLogin() {
             document.getElementById('loginSection').classList.remove('hidden');
             document.getElementById('dashboardSection').classList.add('hidden');
+            document.getElementById('settingsDashboardPage').classList.add('hidden');
+            document.getElementById('logoutBtn').classList.add('hidden');
         }
 
         // Show the dashboard page
         function showDashboard(loggedInUser) {
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('dashboardSection').classList.remove('hidden');
+            document.getElementById('settingsDashboardPage').classList.add('hidden');
+            document.getElementById('logoutBtn').classList.remove('hidden');
+            document.getElementById('settingsBtn').classList.remove('hidden');
 
-            // Display logged-in user's name
-            document.body.insertAdjacentHTML('beforeend', `<p>Logged in as: ${loggedInUser.username}</p>`);
+            // Display logged-in user's name in userInfo
+            document.getElementById('userInfo').textContent = `Logged in as: ${loggedInUser.username}`;
 
             // Display saved accounts
             displaySavedAccounts();
@@ -141,24 +228,20 @@
             const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
             const accountList = document.getElementById('accountList');
             accountList.innerHTML = '';
-            accounts.forEach((account, index) => {
+            accounts.forEach((account) => {
                 const listItem = document.createElement('li');
                 listItem.classList.add('account-item');
 
-                // Display website and username
                 const accountInfo = document.createElement('div');
                 accountInfo.textContent = `Website: ${account.website}, Username: ${account.username}`;
                 listItem.appendChild(accountInfo);
 
-                // Password (hidden by default)
                 const passwordDisplay = document.createElement('span');
                 passwordDisplay.classList.add('password');
                 passwordDisplay.textContent = `Password: ${account.password}`;
                 listItem.appendChild(passwordDisplay);
 
-                // Show password button
                 const showPasswordButton = document.createElement('button');
-                showPasswordButton.id = 'showPasswordBtn';
                 showPasswordButton.textContent = 'Show Password';
                 showPasswordButton.onclick = function () {
                     const passwordField = listItem.querySelector('.password');
@@ -171,10 +254,84 @@
             });
         }
 
+        // Display accounts in settings page (dashboard)
+        function displaySettingsAccounts() {
+            const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+            const settingsAccountList = document.getElementById('settingsAccountList');
+            settingsAccountList.innerHTML = '';
+            accounts.forEach((account, index) => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('account-item');
+
+                // Display website and username
+                const accountInfo = document.createElement('div');
+                accountInfo.textContent = `Website: ${account.website}, Username: ${account.username}`;
+                listItem.appendChild(accountInfo);
+
+                // Edit password button
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit Password';
+                editButton.onclick = function () {
+                    const newPassword = prompt("Enter the new password:", account.password);
+                    if (newPassword) {
+                        account.password = newPassword;
+                        localStorage.setItem('accounts', JSON.stringify(accounts));
+                        displaySettingsAccounts(); // Refresh the list
+                    }
+                };
+                listItem.appendChild(editButton);
+
+                // Delete account button
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete Account';
+                deleteButton.onclick = function () {
+                    accounts.splice(index, 1); // Remove the account from the array
+                    localStorage.setItem('accounts', JSON.stringify(accounts));
+                    displaySettingsAccounts(); // Refresh the list
+                };
+                listItem.appendChild(deleteButton);
+
+                settingsAccountList.appendChild(listItem);
+            });
+        }
+
+        // Handle settings button (dashboard page) click
+        document.getElementById('settingsBtn').addEventListener('click', function () {
+            displaySettingsAccounts();
+            document.getElementById('settingsDashboardPage').classList.remove('hidden');
+            document.getElementById('dashboardSection').classList.add('hidden');
+        });
+
+        // Handle delete account button (settings page)
+        document.getElementById('deleteAccountBtn').addEventListener('click', function () {
+            if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+                localStorage.removeItem('loggedInUser');
+                localStorage.removeItem('accounts');
+                alert('Your account has been deleted.');
+                showLogin();
+            }
+        });
+
+        // Handle back to dashboard button (settings page)
+        document.getElementById('backToDashboardBtn').addEventListener('click', function () {
+            showDashboard(JSON.parse(localStorage.getItem('loggedInUser')));
+        });
+
+        // Handle logout button (settings page from dashboard)
+        document.getElementById('logoutFromSettingsBtn').addEventListener('click', function () {
+            localStorage.removeItem('loggedInUser');
+            showLogin();
+        });
+
+        // Handle logout button (dashboard page)
+        document.getElementById('logoutBtn').addEventListener('click', function () {
+            localStorage.removeItem('loggedInUser');
+            showLogin();
+        });
+
         // Handle login form submission
         document.getElementById('loginForm').addEventListener('submit', function (event) {
             event.preventDefault();
-
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
@@ -186,28 +343,6 @@
             } else {
                 document.getElementById('error').classList.remove('hidden');
             }
-        });
-
-        // Handle account saving form
-        document.getElementById('accountForm').addEventListener('submit', function (event) {
-            event.preventDefault();
-
-            const website = document.getElementById('website').value;
-            const accountUsername = document.getElementById('accountUsername').value;
-            const accountPassword = document.getElementById('accountPassword').value;
-
-            let accounts = JSON.parse(localStorage.getItem('accounts')) || [];
-            accounts.push({ website, username: accountUsername, password: accountPassword });
-            localStorage.setItem('accounts', JSON.stringify(accounts));
-
-            displaySavedAccounts(); // Refresh the account list
-            document.getElementById('accountForm').reset();
-        });
-
-        // Handle logout
-        document.getElementById('logoutBtn').addEventListener('click', function () {
-            localStorage.removeItem('loggedInUser');
-            showLogin();
         });
 
         // Check login status when the page loads
